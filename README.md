@@ -1,0 +1,4 @@
+collect
+=======
+
+Data query syntax
