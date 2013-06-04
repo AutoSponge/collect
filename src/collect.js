@@ -9,19 +9,19 @@
     }
     /**
      * memoizes a single primitive argument
-     * @param func
+     * @param fn {Function}
      * @return {Function}
      */
-    function memoize(func) {
-        var cache = (func.memoize = func.memoize || {});
+    function memoize(fn) {
+        var cache = (fn.memoize = fn.memoize || {});
         return function (arg) {
-            return (arg in cache) ? cache[arg] : cache[arg] = func.call(this, arg);
+            return (arg in cache) ? cache[arg] : cache[arg] = fn.call(this, arg);
         };
     }
 
     /**
      * reaplces the first undefined parameter with val
-     * @param val
+     * @param val {*}
      * @returns {Function}
      */
     function fill(val) {
@@ -35,12 +35,32 @@
             }
         };
     }
+
     /**
-     * creates a function to which bound arguments may curry further arguments
-     * @param fn
+     * @param n {number}
      * @returns {Function}
      */
-    function partialApply(fn) {
+    function part(n) {
+        return function (fn) {
+            return function apply(args) {
+                if (args.length >= n ) {
+                    return fn.apply(this, args);
+                }
+                return function curry(arg) {
+                    if (args.length >= n - 1) {
+                        return fn.apply(this, fill(arg)(args));
+                    }
+                    return apply(fill(arg)(args));
+                };
+            };
+        };
+    }
+    /**
+     * creates a function to which bound arguments may curry further arguments
+     * @param fn {Function}
+     * @returns {Function}
+     */
+    function lpartial(fn) {
         return function apply(args) {
             return function curry(arg) {
                 if (arguments.length === 0) {
@@ -52,7 +72,7 @@
     }
     /**
      * depth-first approach to property access
-     * @type {Function}
+     * @param depth {number}
      */
     var getDepth = memoize(function (depth) {
         var params = "";
@@ -76,17 +96,33 @@
     }),
     /**
      * splits string representations of paths into segments
-     * @param path
+     * @param path {string}
      */
     getSegments = memoize(function (path) {
         return path ? path.split ? path.split(".") : path : [];
     }),
+    get = function () {
+        return part(2)(function (path, obj) {
+            var params = getSegments(path);
+            return getDepth(params.length).apply(obj || this, params);
+        })(arguments);
+    },
+    /**
+     * identify fn for arrays
+     * @param obj
+     * @returns {Function}
+     */
+    all = function (obj) {
+        return function () {
+            return Array.isArray(obj) ? obj.slice(0) : [obj];
+        };
+    },
     api = {
         /**
-         * @param from
-         * @param where
-         * @param limit
-         * @param transform
+         * @param from {Function}
+         * @param where {Function}
+         * @param limit {Function}
+         * @param transform {Function}
          * @returns {Array}
          */
         collect: function (from, where, limit, transform) {
@@ -109,80 +145,67 @@
             }
             return results;
         },
-        /**
-         * @param fn
-         * @returns {Function}
-         */
-        partial: function (fn) {
-            return function (pos) {
-                return function (arg) {
-                    var args = [];
-                    args[pos] = arg;
-                    return partialApply(fn)(args);
-                };
-            };
+        partial: function () {
+            return part(3)(function (fn, pos, arg) {
+                var args = [];
+                args[pos] = arg;
+                return lpartial(fn)(args);
+            })(arguments);
         },
-        /**
-         * @param quantity
-         * @returns {Function}
-         */
-        limitTo: function (quantity) {
+        take: function (quantity) {
             return function (item, results) {
                 return results.length === quantity;
             };
         },
-        /**
-         * @param path
-         * @returns {Function}
-         */
-        having: function (path) {
-            return function (obj) {
+        having: function () {
+            return part(2)(function (path, obj) {
                 return !!(obj && get(path, obj));
-            }
+            })(arguments);
         },
-        /**
-         * @param path
-         * @returns {Function}
-         */
-        eq: function (path) {
-            return function (val) {
-                return function (obj) {
-                    return !!(obj && get(path, obj) === val);
-                };
-            };
+        eq: function () {
+            return part(3)(function (path, val, obj) {
+                return !!(obj && get(path, obj) === val);
+            })(arguments);
         },
-        /**
-         * @param getVal
-         * @returns {Function}
-         */
-        orderBy: function (getVal) {
-            return function (arr) {
+        gt: function () {
+            return part(3)(function (path, val, obj) {
+                return !!(obj && get(path, obj) > val);
+            })(arguments);
+        },
+        gte: function () {
+            return part(3)(function (path, val, obj) {
+                return !!(obj && get(path, obj) >= val);
+            })(arguments);
+        },
+        lt: function () {
+            return part(3)(function (path, val, obj) {
+                return !!(obj && get(path, obj) < val);
+            })(arguments);
+        },
+        lte: function () {
+            return part(3)(function (path, val, obj) {
+                return !!(obj && get(path, obj) <= val);
+            })(arguments);
+        },
+        orderBy: function () {
+            return part(2)(function (getVal, arr) {
                 return arr.sort(function (a, b) {
                     var aVal = getVal(a);
                     var bVal = getVal(b);
                     return aVal === bVal ? 0 : bVal > aVal ? 1 : -1;
                 });
-            };
-        },
-        /**
-         * @param path
-         * @param obj
-         * @returns {*}
-         */
-        get: function (path, obj) {
-            var params = getSegments(path);
-            return getDepth(params.length).apply(obj || this, params);
-        },
-        /**
-         * takes an object then returns a function which takes a string
-         * @returns {Function}
-         */
-        from: function () {
-            return partialApply(function (obj, path) {
-                var val = get(path, obj);
-                return Array.isArray(val) ? val.slice(0) : [val];
             })(arguments);
-        }
+        },
+        from: function () {
+            return lpartial(function (obj, path) {
+                return all(get(path, obj))();
+            })(arguments);
+        },
+        col: function () {
+            return lpartial(collect)(arguments);
+        },
+        get: get,
+        all: all
     };
     global.collect = {
         /**
