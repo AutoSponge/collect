@@ -59,6 +59,22 @@ test("orderby creates a function used to derive values to sort by", function () 
 test("deep having collect", function () {
     ok(collect(from(twitter_data)("results"), having("entities.urls")).length === 3);
 });
-test("col works like collect but with left-papply application", function () {
-    ok(col(all(get("results")(twitter_data)))(having("entities.urls"))().length === 3);
+test("col works like collect but with partial application", function () {
+    ok(col(from(twitter_data)("results"))(having("entities.urls"))().length === 3);
+});
+test("comparison operators as filter functions", function () {
+    var getTweets = col(from(twitter_data)("results"));
+    var withId = eq("id");
+    var afterId = gt("id");
+    var withOrafterId = gte("id");
+    var beforeId = lt("id");
+    var withOrbeforeId = lte("id");
+    var id = 122078309004742656;
+    ok(getTweets(withId(id))().length === 1);
+    ok(getTweets(afterId(id))().length === 2);
+    ok(getTweets(withOrafterId(id))().length === 3);
+    ok(getTweets(beforeId(id))().length === 5);
+    ok(getTweets(withOrbeforeId(id))().length === 6);
+    ok(getTweets(or(afterId(id), beforeId(id))())().length === 7);
+    ok(getTweets(and(beforeId(id), eq("metadata.result_type", "recent"))())().length === 2);
 });

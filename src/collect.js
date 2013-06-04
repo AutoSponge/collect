@@ -173,6 +173,22 @@
         lte: lazy(function (path, val, obj) {
             return !!(obj && get(path, obj) <= val);
         }),
+        and: partial(function () {
+            var args = Array.prototype.slice.call(arguments, 0);
+            return function (obj) {
+                return args.every(function (fn) {
+                    return fn(obj);
+                });
+            }
+        }),
+        or: partial(function () {
+            var args = Array.prototype.slice.call(arguments, 0);
+            return function (obj) {
+                return args.some(function (fn) {
+                    return fn(obj);
+                });
+            }
+        }),
         orderBy: lazy(function (getVal, arr) {
             return arr.sort(function (a, b) {
                 var aVal = getVal(a);
@@ -185,8 +201,7 @@
         }),
         collect: collect,
         col: partial(collect),
-        get: get,
-        all: all
+        get: partial(get)
     };
     global.collect = {
         /**
