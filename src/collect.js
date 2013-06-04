@@ -40,7 +40,7 @@
      * @param fn
      * @returns {Function}
      */
-    function part(fn, n) {
+    function lazy(fn, n) {
         var arity = n || fn.length || 1;
         return function () {
             var args = arguments;
@@ -102,7 +102,7 @@
     getSegments = memoize(function (path) {
         return path ? path.split ? path.split(".") : path : [];
     }),
-    get = part(function (path, obj) {
+    get = lazy(function (path, obj) {
         var params = getSegments(path);
         return getDepth(params.length).apply(obj || this, params);
     }),
@@ -144,7 +144,7 @@
             }
             return results;
         },
-        papply: part(function (fn, pos, arg) {
+        papply: lazy(function (fn, pos, arg) {
             var args = [];
             args[pos] = arg;
             return lpartial(fn)(args);
@@ -154,25 +154,25 @@
                 return results.length === quantity;
             };
         },
-        having: part(function (path, obj) {
+        having: lazy(function (path, obj) {
                     return !!(obj && get(path, obj));
         }),
-        eq: part(function (path, val, obj) {
+        eq: lazy(function (path, val, obj) {
             return !!(obj && get(path, obj) === val);
         }),
-        gt: part(function (path, val, obj) {
+        gt: lazy(function (path, val, obj) {
             return !!(obj && get(path, obj) > val);
         }),
-        gte: part(function (path, val, obj) {
+        gte: lazy(function (path, val, obj) {
             return !!(obj && get(path, obj) >= val);
         }),
-        lt: part(function (path, val, obj) {
+        lt: lazy(function (path, val, obj) {
             return !!(obj && get(path, obj) < val);
         }),
-        lte: part(function (path, val, obj) {
+        lte: lazy(function (path, val, obj) {
             return !!(obj && get(path, obj) <= val);
         }),
-        orderBy: part(function (getVal, arr) {
+        orderBy: lazy(function (getVal, arr) {
             return arr.sort(function (a, b) {
                 var aVal = getVal(a);
                 var bVal = getVal(b);
