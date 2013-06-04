@@ -57,18 +57,19 @@
             }(args));
         };
     }
-    /**
-     * @param fn {Function}
-     * @returns {Function}
-     */
-    function lpartial(fn) {
-        return function apply(args) {
+    function partialApply(fn, args) {
+        return (function apply(args) {
             return function curry(arg) {
                 if (arguments.length === 0) {
                     return fn.apply(this, args);
                 }
                 return apply(fill(arg)(args));
             };
+        }(args));
+    }
+    function partial(fn) {
+        return function () {
+            return partialApply(fn, arguments);
         };
     }
     /**
@@ -116,38 +117,38 @@
             return Array.isArray(obj) ? obj.slice(0) : [obj];
         };
     },
-    api = {
-        /**
-         * @param from {Function}
-         * @param where {Function}
-         * @param limit {Function}
-         * @param transform {Function}
-         * @returns {Array}
-         */
-        collect: function (from, where, limit, transform) {
-            var item;
-            var results = [];
-            var head = [];
-            if (!(from instanceof Function)) {
+    /**
+     * @param from {Function}
+     * @param where {Function}
+     * @param limit {Function}
+     * @param transform {Function}
+     * @returns {Array}
+     */
+    collect = function (from, where, limit, transform) {
+        var item;
+        var results = [];
+        var head = [];
+        if (!(from instanceof Function)) {
+            return results;
+        }
+        var tail = transform ? transform(from()) : from();
+        while (tail && tail.length) {
+            item = tail.shift();
+            head.push(item);
+            if (!where || where(item)) {
+                results.push(item);
+            }
+            if (limit && limit(item, results, head, tail)) {
                 return results;
             }
-            var tail = transform ? transform(from()) : from();
-            while (tail && tail.length) {
-                item = tail.shift();
-                head.push(item);
-                if (!where || where(item)) {
-                    results.push(item);
-                }
-                if (limit && limit(item, results, head, tail)) {
-                    return results;
-                }
-            }
-            return results;
-        },
+        }
+        return results;
+    },
+    api = {
         papply: lazy(function (fn, pos, arg) {
             var args = [];
             args[pos] = arg;
-            return lpartial(fn)(args);
+            return partialApply(fn, args);
         }),
         take: function (quantity) {
             return function (item, results) {
@@ -179,14 +180,11 @@
                 return aVal === bVal ? 0 : bVal > aVal ? 1 : -1;
             });
         }),
-        from: function () {
-            return lpartial(function (obj, path) {
-                return all(get(path, obj))();
-            })(arguments);
-        },
-        col: function () {
-            return lpartial(collect)(arguments);
-        },
+        from: partial(function (obj, path) {
+            return all(get(path, obj))();
+        }),
+        collect: collect,
+        col: partial(collect),
         get: get,
         all: all
     };
