@@ -20,7 +20,7 @@
     }
 
     /**
-     * reaplces the first undefined parameter with val
+     * replaces the first undefined parameter with val
      * @param val {*}
      * @returns {Function}
      */
@@ -35,28 +35,29 @@
             }
         };
     }
-
     /**
      * @param n {number}
+     * @param fn
      * @returns {Function}
      */
-    function part(n) {
-        return function (fn) {
-            return function apply(args) {
-                if (args.length >= n ) {
+    function part(fn, n) {
+        var arity = n || fn.length || 1;
+        return function () {
+            var args = arguments;
+            return (function apply(args) {
+                if (args.length >= arity ) {
                     return fn.apply(this, args);
                 }
                 return function curry(arg) {
-                    if (args.length >= n - 1) {
+                    if (args.length >= arity - 1) {
                         return fn.apply(this, fill(arg)(args));
                     }
                     return apply(fill(arg)(args));
                 };
-            };
+            }(args));
         };
     }
     /**
-     * creates a function to which bound arguments may curry further arguments
      * @param fn {Function}
      * @returns {Function}
      */
@@ -101,12 +102,10 @@
     getSegments = memoize(function (path) {
         return path ? path.split ? path.split(".") : path : [];
     }),
-    get = function () {
-        return part(2)(function (path, obj) {
-            var params = getSegments(path);
-            return getDepth(params.length).apply(obj || this, params);
-        })(arguments);
-    },
+    get = part(function (path, obj) {
+        var params = getSegments(path);
+        return getDepth(params.length).apply(obj || this, params);
+    }),
     /**
      * identify fn for arrays
      * @param obj
@@ -145,57 +144,41 @@
             }
             return results;
         },
-        partial: function () {
-            return part(3)(function (fn, pos, arg) {
-                var args = [];
-                args[pos] = arg;
-                return lpartial(fn)(args);
-            })(arguments);
-        },
+        papply: part(function (fn, pos, arg) {
+            var args = [];
+            args[pos] = arg;
+            return lpartial(fn)(args);
+        }),
         take: function (quantity) {
             return function (item, results) {
                 return results.length === quantity;
             };
         },
-        having: function () {
-            return part(2)(function (path, obj) {
-                return !!(obj && get(path, obj));
-            })(arguments);
-        },
-        eq: function () {
-            return part(3)(function (path, val, obj) {
-                return !!(obj && get(path, obj) === val);
-            })(arguments);
-        },
-        gt: function () {
-            return part(3)(function (path, val, obj) {
-                return !!(obj && get(path, obj) > val);
-            })(arguments);
-        },
-        gte: function () {
-            return part(3)(function (path, val, obj) {
-                return !!(obj && get(path, obj) >= val);
-            })(arguments);
-        },
-        lt: function () {
-            return part(3)(function (path, val, obj) {
-                return !!(obj && get(path, obj) < val);
-            })(arguments);
-        },
-        lte: function () {
-            return part(3)(function (path, val, obj) {
-                return !!(obj && get(path, obj) <= val);
-            })(arguments);
-        },
-        orderBy: function () {
-            return part(2)(function (getVal, arr) {
-                return arr.sort(function (a, b) {
-                    var aVal = getVal(a);
-                    var bVal = getVal(b);
-                    return aVal === bVal ? 0 : bVal > aVal ? 1 : -1;
-                });
-            })(arguments);
-        },
+        having: part(function (path, obj) {
+                    return !!(obj && get(path, obj));
+        }),
+        eq: part(function (path, val, obj) {
+            return !!(obj && get(path, obj) === val);
+        }),
+        gt: part(function (path, val, obj) {
+            return !!(obj && get(path, obj) > val);
+        }),
+        gte: part(function (path, val, obj) {
+            return !!(obj && get(path, obj) >= val);
+        }),
+        lt: part(function (path, val, obj) {
+            return !!(obj && get(path, obj) < val);
+        }),
+        lte: part(function (path, val, obj) {
+            return !!(obj && get(path, obj) <= val);
+        }),
+        orderBy: part(function (getVal, arr) {
+            return arr.sort(function (a, b) {
+                var aVal = getVal(a);
+                var bVal = getVal(b);
+                return aVal === bVal ? 0 : bVal > aVal ? 1 : -1;
+            });
+        }),
         from: function () {
             return lpartial(function (obj, path) {
                 return all(get(path, obj))();

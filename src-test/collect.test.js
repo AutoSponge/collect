@@ -25,7 +25,7 @@ test("collect filters results (no DSL)", function () {
 });
 test("collect filters results (DSL1)", function () {
     var one = take(1);
-    var limit = partial(collect)(2);
+    var limit = papply(collect)(2);
     var tweet = from(twitter_data)("results");
     var withId = eq("id");
     var query = limit(one)(tweet)(withId(122078461840982016));
@@ -34,7 +34,7 @@ test("collect filters results (DSL1)", function () {
 });
 test("collect filters results (DSL2)", function () {
     var one = take(1);
-    var limit = partial(collect)(2);
+    var limit = papply(collect)(2);
     var tweet = from(twitter_data)("results");
     var withId = eq("id");
     var first = limit(one);
@@ -50,7 +50,7 @@ test("having tests existence", function () {
     ok(results.length === 2);
 });
 test("orderby creates a function used to derive values to sort by", function () {
-    var sortByDate = partial(collect)(3)(orderBy(function (item) {
+    var sortByDate = papply(collect)(3)(orderBy(function (item) {
         return new Date(item.created_at);
     }));
     var results = sortByDate(from(twitter_data)("results"))();
@@ -59,6 +59,6 @@ test("orderby creates a function used to derive values to sort by", function () 
 test("deep having collect", function () {
     ok(collect(from(twitter_data)("results"), having("entities.urls")).length === 3);
 });
-test("col works like collect but with left-partial application", function () {
+test("col works like collect but with left-papply application", function () {
     ok(col(all(get("results")(twitter_data)))(having("entities.urls"))().length === 3);
 });
