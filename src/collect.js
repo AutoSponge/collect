@@ -160,6 +160,9 @@
                 return head.length > quantity;
             };
         },
+        last: function (item, results, head, tail) {
+            return tail.length === 0;
+        },
         having: lazy(function (path, obj) {
             return !!(obj && get(path, obj));
         }),

@@ -83,3 +83,7 @@ test("skip", function () {
     ok(getTweets().length === 8);
     ok(getTweets(skip(3))().length === 5);
 });
+test("last", function () {
+    var getTweets = col(from(twitter_data)("results"));
+    ok(getTweets()[7] === getTweets(last)()[0]);
+});
