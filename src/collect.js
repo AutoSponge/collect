@@ -135,7 +135,7 @@
         while (tail && tail.length) {
             item = tail.shift();
             head.push(item);
-            if (!where || where(item)) {
+            if (!where || where(item, results, head, tail)) {
                 results.push(item);
             }
             if (limit && limit(item, results, head, tail)) {
@@ -155,8 +155,13 @@
                 return results.length === quantity;
             };
         },
+        skip: function (quantity) {
+            return function (item, results, head) {
+                return head.length > quantity;
+            };
+        },
         having: lazy(function (path, obj) {
-                    return !!(obj && get(path, obj));
+            return !!(obj && get(path, obj));
         }),
         eq: lazy(function (path, val, obj) {
             return !!(obj && get(path, obj) === val);
@@ -174,18 +179,20 @@
             return !!(obj && get(path, obj) <= val);
         }),
         and: partial(function () {
-            var args = Array.prototype.slice.call(arguments, 0);
-            return function (obj) {
-                return args.every(function (fn) {
-                    return fn(obj);
+            var fnList = arguments;
+            return function () {
+                var args = arguments;
+                return Array.prototype.every.call(fnList, function (fn) {
+                    return fn.apply(this, args);
                 });
             }
         }),
         or: partial(function () {
-            var args = Array.prototype.slice.call(arguments, 0);
-            return function (obj) {
-                return args.some(function (fn) {
-                    return fn(obj);
+            var fnList = arguments;
+            return function () {
+                var args = arguments;
+                return Array.prototype.some.call(fnList, function (fn) {
+                    return fn.apply(this, args);
                 });
             }
         }),

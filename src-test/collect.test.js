@@ -78,3 +78,8 @@ test("comparison operators as filter functions", function () {
     ok(getTweets(or(afterId(id), beforeId(id))())().length === 7);
     ok(getTweets(and(beforeId(id), eq("metadata.result_type", "recent"))())().length === 2);
 });
+test("skip", function () {
+    var getTweets = col(from(twitter_data)("results"));
+    ok(getTweets().length === 8);
+    ok(getTweets(skip(3))().length === 5);
+});
