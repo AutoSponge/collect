@@ -18,7 +18,6 @@
             return (arg in cache) ? cache[arg] : cache[arg] = fn.call(this, arg);
         };
     }
-
     /**
      * replaces the first undefined parameter with val
      * @param val {*}
@@ -36,6 +35,7 @@
         };
     }
     /**
+     * creates a function which will accept arguments until its signature is fulfilled
      * @param n {number}
      * @param fn
      * @returns {Function}
@@ -57,6 +57,12 @@
             }(args));
         };
     }
+    /**
+     * stores 1-n arguments to be applied when invoked with no arguments
+     * @param fn
+     * @param args
+     * @returns {apply}
+     */
     function partialApply(fn, args) {
         return (function apply(args) {
             return function curry(arg) {
@@ -67,6 +73,11 @@
             };
         }(args));
     }
+    /**
+     * returns a function which can partially apply arguments
+     * @param fn
+     * @returns {Function}
+     */
     function partial(fn) {
         return function () {
             return partialApply(fn, arguments);
@@ -103,6 +114,11 @@
     getSegments = memoize(function (path) {
         return path ? path.split ? path.split(".") : path : [];
     }),
+    /**
+     *  null-safe object-property access
+     *  @param path {string} dot-notation address
+     *  @param obj
+     */
     get = lazy(function (path, obj) {
         var params = getSegments(path);
         return getDepth(params.length).apply(obj || this, params);
@@ -118,6 +134,7 @@
         };
     },
     /**
+     * efficient querying of record sets
      * @param from {Function}
      * @param where {Function}
      * @param limit {Function}
@@ -181,6 +198,9 @@
         lte: lazy(function (path, val, obj) {
             return !!(obj && get(path, obj) <= val);
         }),
+        dot: lazy(function (prop, obj) {
+            return obj[prop];
+        }),
         and: partial(function () {
             var fnList = arguments;
             return function () {
@@ -188,7 +208,7 @@
                 return Array.prototype.every.call(fnList, function (fn) {
                     return fn.apply(this, args);
                 });
-            }
+            };
         }),
         or: partial(function () {
             var fnList = arguments;
@@ -197,7 +217,7 @@
                 return Array.prototype.some.call(fnList, function (fn) {
                     return fn.apply(this, args);
                 });
-            }
+            };
         }),
         orderBy: lazy(function (getVal, arr) {
             return arr.sort(function (a, b) {

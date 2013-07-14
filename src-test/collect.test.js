@@ -6,17 +6,34 @@ var data = {
 
 collect.install();
 module("collect");
-test("from returns an array", function () {
-    ok(Array.isArray(from(data)("a")()));
-});
 test("collect returns an empty array if from is not a function", function () {
     var results = collect();
     ok(Array.isArray(results));
     ok(results.length === 0);
 });
+test("col works like collect but with partial application", function () {
+    ok(col(from(twitter_data)("results"))(having("entities.urls"))().length === 3);
+});
+test("from returns an array", function () {
+    ok(Array.isArray(from(data)("a")()));
+});
 test("from returns a copy of an array", function () {
     ok(Array.isArray(from(data)("b")()));
     ok(from(data)("b")() !== data.b);
+});
+
+test("take will limit the number of results", function () {
+    equal(collect(from(twitter_data)("results")).length, 8);
+    equal(collect(from(twitter_data)("results"), null, take(4)).length, 4);
+});
+test("skip", function () {
+    var getTweets = col(from(twitter_data)("results"));
+    ok(getTweets().length === 8);
+    ok(getTweets(skip(3))().length === 5);
+});
+test("last", function () {
+    var getTweets = col(from(twitter_data)("results"));
+    ok(getTweets()[7] === getTweets(last)()[0]);
 });
 test("collect filters results (no DSL)", function () {
     var results = collect(from(twitter_data)("results"), eq("id")(122078461840982016), take(1));
@@ -59,9 +76,6 @@ test("orderby creates a function used to derive values to sort by", function () 
 test("deep having collect", function () {
     ok(collect(from(twitter_data)("results"), having("entities.urls")).length === 3);
 });
-test("col works like collect but with partial application", function () {
-    ok(col(from(twitter_data)("results"))(having("entities.urls"))().length === 3);
-});
 test("comparison operators as filter functions", function () {
     var getTweets = col(from(twitter_data)("results"));
     var withId = eq("id");
@@ -77,13 +91,4 @@ test("comparison operators as filter functions", function () {
     ok(getTweets(withOrbeforeId(id))().length === 6);
     ok(getTweets(or(afterId(id), beforeId(id))())().length === 7);
     ok(getTweets(and(beforeId(id), eq("metadata.result_type", "recent"))())().length === 2);
-});
-test("skip", function () {
-    var getTweets = col(from(twitter_data)("results"));
-    ok(getTweets().length === 8);
-    ok(getTweets(skip(3))().length === 5);
-});
-test("last", function () {
-    var getTweets = col(from(twitter_data)("results"));
-    ok(getTweets()[7] === getTweets(last)()[0]);
 });
